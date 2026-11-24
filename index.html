@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Philippine Payroll Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-wrap justify-between items-center py-3 gap-3 min-h-16">
+                <div class="flex items-center gap-2">
+                    <!-- Brand Icon -->
+                    <div class="bg-blue-600 p-2 rounded-lg text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
+                        </svg>
+                    </div>
+                    <h1 class="text-lg font-semibold tracking-tight text-slate-900">HR Dashboard <span class="font-normal text-slate-500">| Payroll Computation Engine</span></h1>
+                </div>
+
+                <!-- Quick Presets & Reset -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" onclick="loadPreset('monthly')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors">
+                        Preset: Monthly (₱20k / 11d)
+                    </button>
+                    <button type="button" onclick="loadPreset('daily')" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors">
+                        Preset: Daily (₱600 / 12d)
+                    </button>
+                    <button type="button" onclick="resetForm()" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-slate-100 text-slate-700 border border-slate-300 hover:bg-slate-200 transition-colors">
+                        Reset Inputs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-6">
+            <h2 class="text-2xl font-bold text-slate-900">Salary Computation</h2>
+            <p class="text-slate-500 text-sm mt-1">Enter pay, attendance, overtime, holiday, rest day, and allowance inputs based on <code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded">BusinessLogic.vb</code>. Deductions, tax, and payslip summary update live.</p>
+        </div>
+
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+            
+            <!-- LEFT / PRIMARY PANEL (7 cols on XL): Pay, Attendance, OT, Holidays, Rest Day & Allowances -->
+            <div class="xl:col-span-7 space-y-6">
+                
+                <!-- 1. Employee Profile & Basis Card -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-md font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 text-xs font-bold flex items-center justify-center">1</span>
+                        Employee Profile, Workdays, Leaves & Allowances
+                    </h3>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 mb-5">
+                        <label class="flex-1 relative">
+                            <input type="radio" name="empType" value="monthly" class="peer sr-only" checked onchange="updateFormUI()">
+                            <div class="p-3.5 bg-white border-2 border-slate-200 rounded-lg cursor-pointer transition-all hover:bg-slate-50 peer-checked:border-blue-600 peer-checked:bg-blue-50">
+                                <div class="font-semibold text-slate-800 text-sm">Monthly-Paid (<code class="text-xs">IsMonthly = 1</code>)</div>
+                                <div class="text-xs text-slate-500 mt-0.5">313 annual divisor, 8h workday, semi-monthly base</div>
+                            </div>
+                        </label>
+                        <label class="flex-1 relative">
+                            <input type="radio" name="empType" value="daily" class="peer sr-only" onchange="updateFormUI()">
+                            <div class="p-3.5 bg-white border-2 border-slate-200 rounded-lg cursor-pointer transition-all hover:bg-slate-50 peer-checked:border-blue-600 peer-checked:bg-blue-50">
+                                <div class="font-semibold text-slate-800 text-sm">Daily-Paid (<code class="text-xs">IsMonthly = 0</code>)</div>
+                                <div class="text-xs text-slate-500 mt-0.5">Paid per actual workday, 8h standard shift</div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div class="sm:col-span-2 lg:col-span-1">
+                            <label id="salaryLabel" for="salary" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Basic Monthly Salary (₱)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">₱</span>
+                                <input type="number" id="salary" min="0" step="0.01" value="20000" class="block w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="days" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Regular Workdays</label>
+                            <input type="number" id="days" min="0" step="0.5" value="11" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">WorkDays</code> / <code class="text-[10px]">RegularDays</code></p>
+                        </div>
+
+                        <div>
+                            <label for="cola" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Daily COLA (₱)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">₱</span>
+                                <input type="number" id="cola" min="0" step="0.01" value="40" class="block w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">DefCOLA</code> (Default ₱40)</p>
+                        </div>
+
+                        <div>
+                            <label for="slvlHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Paid Leave Hrs (<code class="text-[10px]">SLVL</code>)</label>
+                            <input type="number" id="slvlHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                        </div>
+
+                        <div>
+                            <label for="obHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Official Bus. Hrs (<code class="text-[10px]">OB</code>)</label>
+                            <input type="number" id="obHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                        </div>
+
+                        <div>
+                            <label for="offsetHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Offset Hours (<code class="text-[10px]">Offset</code>)</label>
+                            <input type="number" id="offsetHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                        </div>
+
+                        <div>
+                            <label for="empAllowance" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Allowance Rate (₱)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">₱</span>
+                                <input type="number" id="empAllowance" min="0" step="0.01" value="0" class="block w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">EmployeeAllowance</code> (Mo/Day)</p>
+                        </div>
+
+                        <div>
+                            <label for="otherIncomeCode" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Allowance Code</label>
+                            <input type="number" id="otherIncomeCode" step="1" value="2" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">OtherIncomeCode</code> (Default 2)</p>
+                        </div>
+
+                        <div>
+                            <label for="othInc" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Other Income (<code class="text-[10px]">OthInc</code>)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">₱</span>
+                                <input type="number" id="othInc" min="0" step="0.01" value="0" class="block w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Attendance Deductions Card -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h3 class="text-md font-semibold text-slate-800 flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-800 text-xs font-bold flex items-center justify-center">2</span>
+                            Attendance & Other Deductions
+                        </h3>
+                        <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-1 rounded-md font-medium">
+                            Time inputs in hours (e.g. 30 mins = 0.5 hrs)
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                            <label for="absHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Absences (Hrs)</label>
+                            <input type="number" id="absHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">NumberofAbs</code> (Monthly only)</p>
+                        </div>
+
+                        <div>
+                            <label for="lateHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Late (Hrs)</label>
+                            <input type="number" id="lateHrs" min="0" step="0.25" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">NumberofLates</code></p>
+                        </div>
+
+                        <div>
+                            <label for="utimeHrs" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Undertime (Hrs)</label>
+                            <input type="number" id="utimeHrs" min="0" step="0.25" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            <p class="text-[11px] text-slate-500 mt-0.5"><code class="text-[10px]">NumberofUtimes</code></p>
+                        </div>
+
+                        <div>
+                            <label for="othDed" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Other Ded. (<code class="text-[10px]">OthDed</code>)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 text-sm">₱</span>
+                                <input type="number" id="othDed" min="0" step="0.01" value="0" class="block w-full pl-8 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Subtracted in <code class="text-[10px]">ComputeIncome()</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Overtime, Rest Day, Holiday & Night Diff Card -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <h3 class="text-md font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">3</span>
+                        Overtime, Rest Day, Holiday & Night Differential Inputs
+                    </h3>
+
+                    <!-- Sub-group A: Regular OT, Rest Day & Night Diff -->
+                    <div class="mb-6">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 border-b border-slate-100 pb-1">Regular Overtime, Rest Day & Night Differential</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label for="otHrs" class="block text-xs font-medium text-slate-700 mb-1">Regular OT Hrs (1.25x)</label>
+                                <input type="number" id="otHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">ComputeOTAmt</code> (<code class="text-[10px]">OT</code>)</p>
+                            </div>
+
+                            <div>
+                                <label for="otNightDiffHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. OT Night Diff Hrs</label>
+                                <input type="number" id="otNightDiffHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.25 × 0.10 (<code class="text-[10px]">OTNightDiffHrs</code>)</p>
+                            </div>
+
+                            <div>
+                                <label for="nightDiffHrs" class="block text-xs font-medium text-slate-700 mb-1">Night Diff Hrs (0.10x)</label>
+                                <input type="number" id="nightDiffHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">ComputeNightDiff</code> (<code class="text-[10px]">Night_Def</code>)</p>
+                            </div>
+
+                            <div>
+                                <label for="restDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Rest Day Hrs (1.30x)</label>
+                                <input type="number" id="restDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">ComputeRestDayAmt</code> (<code class="text-[10px]">RestDay</code>)</p>
+                            </div>
+
+                            <div>
+                                <label for="restDayOTHrs" class="block text-xs font-medium text-slate-700 mb-1">Rest Day OT Hrs (1.30×1.30)</label>
+                                <input type="number" id="restDayOTHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">ComputeRestDayOTAmt</code></p>
+                            </div>
+
+                            <div>
+                                <label for="restDayNDHrs" class="block text-xs font-medium text-slate-700 mb-1">Rest Day Night Diff Hrs</label>
+                                <input type="number" id="restDayNDHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.30 × 0.10 (<code class="text-[10px]">RestDayND</code>)</p>
+                            </div>
+
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <label for="restDayOTNDHrs" class="block text-xs font-medium text-slate-700 mb-1">Rest Day OT + ND Hrs</label>
+                                <input type="number" id="restDayOTNDHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.30 × 1.30 × 0.10 (<code class="text-[10px]">RestDayOTND</code>)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-group B: Regular / Legal Holidays -->
+                    <div class="mb-6">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 border-b border-slate-100 pb-1">Regular / Legal Holiday Inputs</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label for="legHolDays" class="block text-xs font-medium text-slate-700 mb-1">Reg. Holiday Days (<code class="text-[10px]">LegHol</code>)</label>
+                                <input type="number" id="legHolDays" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+
+                            <div>
+                                <label for="legHolHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Holiday Hrs (<code class="text-[10px]">LegHolHrs</code>)</label>
+                                <input type="number" id="legHolHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+
+                            <div>
+                                <label for="legHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Hol on Rest Day Hrs</label>
+                                <input type="number" id="legHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">LegHolRestDayHrs</code></p>
+                            </div>
+
+                            <div>
+                                <label for="otLegHolHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Hol OT Hrs (2.00×1.30)</label>
+                                <input type="number" id="otLegHolHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">OTLegHolHrs</code></p>
+                            </div>
+
+                            <div>
+                                <label for="otLegHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Hol Rest Day OT Hrs</label>
+                                <input type="number" id="otLegHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">2.00 × 1.30 × 1.30</p>
+                            </div>
+
+                            <div>
+                                <label for="otNDLegHolHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Hol OT + ND Hrs</label>
+                                <input type="number" id="otNDLegHolHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">2.00 × 1.30 × 0.10</p>
+                            </div>
+
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <label for="otNDLegHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Reg. Hol RD OT + ND Hrs</label>
+                                <input type="number" id="otNDLegHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">2.00 × 1.30 × 1.30 × 0.10</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sub-group C: Special Non-Working Holidays -->
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3 border-b border-slate-100 pb-1">Special Non-Working Holiday Inputs</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label for="splHolDays" class="block text-xs font-medium text-slate-700 mb-1">Spc. Holiday Days (<code class="text-[10px]">SplHolDays</code>)</label>
+                                <input type="number" id="splHolDays" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                            </div>
+
+                            <div>
+                                <label for="splHolHrsPresent" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol Hrs Worked</label>
+                                <input type="number" id="splHolHrsPresent" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">SplHolHrsPresent</code></p>
+                            </div>
+
+                            <div>
+                                <label for="splHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol on Rest Day Hrs</label>
+                                <input type="number" id="splHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">SplHolRestDayHrs</code></p>
+                            </div>
+
+                            <div>
+                                <label for="otSplHolHrs" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol OT Hrs (1.30×1.30)</label>
+                                <input type="number" id="otSplHolHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5"><code class="text-[10px]">OTSplHolHrs</code></p>
+                            </div>
+
+                            <div>
+                                <label for="otSplHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol Rest Day OT Hrs</label>
+                                <input type="number" id="otSplHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.50 × 1.30 (<code class="text-[10px]">OTSplHolRestDayHrs</code>)</p>
+                            </div>
+
+                            <div>
+                                <label for="otNDSplHolHrs" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol OT + ND Hrs</label>
+                                <input type="number" id="otNDSplHolHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.30 × 1.30 × 0.10</p>
+                            </div>
+
+                            <div class="sm:col-span-2 lg:col-span-1">
+                                <label for="otNDSplHolRestDayHrs" class="block text-xs font-medium text-slate-700 mb-1">Spc. Hol RD OT + ND Hrs</label>
+                                <input type="number" id="otNDSplHolRestDayHrs" min="0" step="0.5" value="0" class="block w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-slate-50 focus:bg-white" oninput="calculatePayroll()">
+                                <p class="text-[11px] text-slate-400 mt-0.5">1.50 × 1.30 × 0.10</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT / SIDE COLUMN (5 cols on XL): Separate Deductions & Tax Panel + Payslip Summary -->
+            <div class="xl:col-span-5 space-y-6 xl:sticky xl:top-20">
+                
+                <!-- DEDUCTIONS & TAX BREAKDOWN SIDE PANEL -->
+                <div class="bg-white p-6 rounded-xl border-2 border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                        <div>
+                            <h3 class="text-md font-bold text-slate-900 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-rose-600" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                                </svg>
+                                Deductions & Tax Breakdown
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-0.5">Separate statutory, tax & deduction panel (<code class="text-[10px]">ComputeDeduction()</code>)</p>
+                        </div>
+                        <span class="text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200">Deductions</span>
+                    </div>
+
+                    <!-- SSS Contribution (EE) -->
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <span class="text-xs font-semibold text-slate-800">SSS Contribution (EE)</span>
+                            <span id="outSSS" class="text-sm font-bold text-rose-600">₱0.00</span>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" id="sssAutoEstimate" class="rounded text-blue-600" checked onchange="calculatePayroll()">
+                                <span>Auto-estimate EE</span>
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[11px] text-slate-500">Manual EE ₱:</span>
+                                <input type="number" id="sssManual" min="0" step="0.01" value="900" class="w-24 px-2 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-amber-800 bg-amber-50/80 border border-amber-200/70 rounded px-2 py-1 mt-2">
+                            <strong>DB Notice:</strong> <code class="text-[10px]">ComputeSSS()</code> queries <code class="text-[10px]">GetSSSRange()</code> in DB. Auto-estimate uses an illustrative bracket fallback when standalone.
+                        </p>
+                    </div>
+
+                    <!-- PhilHealth Contribution (PS) -->
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <span class="text-xs font-semibold text-slate-800">PhilHealth Contribution (PS)</span>
+                            <span id="outPhilHealth" class="text-sm font-bold text-rose-600">₱0.00</span>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                <input type="checkbox" id="phAutoCalc" class="rounded text-blue-600" checked onchange="calculatePayroll()">
+                                <span>From <code class="text-[10px]">ComputeIncomePhilHealth()</code></span>
+                            </label>
+                            <div class="flex items-center gap-1">
+                                <span class="text-[11px] text-slate-500">Manual PS ₱:</span>
+                                <input type="number" id="phManual" min="0" step="0.01" value="500" class="w-24 px-2 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
+                            <span>PhilHealth Basis: <strong id="outPHBasis" class="text-slate-700">₱0.00</strong></span>
+                            <span>Illustrative 5% / 2 (PS)</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 bg-amber-50/80 border border-amber-200/70 rounded px-2 py-1 mt-1.5">
+                            <strong>DB Notice:</strong> <code class="text-[10px]">ComputeMedicareAmt()</code> reads <code class="text-[10px]">GetMedicareRange()</code> (<code class="text-[10px]">fldPS</code>). Value shown is illustrative unless configured.
+                        </p>
+                    </div>
+
+                    <!-- Pag-IBIG Contribution (EE) -->
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <span class="text-xs font-semibold text-slate-800">Pag-IBIG Contribution (<code class="text-[10px]">ComputePagIbig</code>)</span>
+                            <span id="outPagIbig" class="text-sm font-bold text-rose-600">₱0.00</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-600 mt-1">
+                            <div>
+                                <label for="prevGrossPay" class="block text-[11px] text-slate-500">Prev. Gross Pay (<code class="text-[10px]">PrevGrossPay</code>)</label>
+                                <input type="number" id="prevGrossPay" min="0" step="0.01" value="0" class="w-full mt-0.5 px-2 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <div class="flex flex-col justify-end gap-1">
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" id="pagibigER" class="rounded text-blue-600" onchange="calculatePayroll()">
+                                    <span class="text-[11px]">ER Share Mode (<code class="text-[10px]">PagibigER</code>)</span>
+                                </label>
+                                <label class="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" id="pagibigOld2023" class="rounded text-blue-600" onchange="calculatePayroll()">
+                                    <span class="text-[11px]">Legacy 2023 (₱100 cap)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-1.5">
+                            ≤₱1,500: 1% EE (2% ER) · &gt;₱1,500–&lt;₱10,000: 2% · ≥₱10,000: ₱200 cap.
+                        </p>
+                    </div>
+
+                    <!-- Withholding Tax (Wtax) -->
+                    <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 mb-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-1.5">
+                            <span class="text-xs font-semibold text-slate-800">Withholding Tax (<code class="text-[10px]">ComputeWtax</code>)</span>
+                            <span id="outWtax" class="text-sm font-bold text-rose-600">₱0.00</span>
+                        </div>
+                        <p class="text-[11px] text-slate-600 mb-2">
+                            Formula: <code class="text-[10px]">(Taxable - Minuend) × Multiplier + Addends</code>
+                        </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                            <div>
+                                <label for="civilStatus" class="block text-[10px] text-slate-500">Civil Status</label>
+                                <select id="civilStatus" class="w-full mt-0.5 px-1.5 py-1 text-xs border border-slate-300 rounded bg-white" onchange="calculatePayroll()">
+                                    <option value="S">Single (S)</option>
+                                    <option value="ME">Married (ME)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="wtaxMinuend" class="block text-[10px] text-slate-500"><code class="text-[10px]">fldMinuend</code></label>
+                                <input type="number" id="wtaxMinuend" min="0" step="0.01" value="10417" class="w-full mt-0.5 px-1.5 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <div>
+                                <label for="wtaxMultiplier" class="block text-[10px] text-slate-500"><code class="text-[10px]">fldMultiplier</code></label>
+                                <input type="number" id="wtaxMultiplier" min="0" step="0.01" value="0.15" class="w-full mt-0.5 px-1.5 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                            <div>
+                                <label for="wtaxAddends" class="block text-[10px] text-slate-500"><code class="text-[10px]">fldAddends</code></label>
+                                <input type="number" id="wtaxAddends" min="0" step="0.01" value="0" class="w-full mt-0.5 px-1.5 py-1 text-xs border border-slate-300 rounded bg-white" oninput="calculatePayroll()">
+                            </div>
+                        </div>
+                        <p class="text-[11px] text-amber-800 bg-amber-50/80 border border-amber-200/70 rounded px-2 py-1 mt-2">
+                            <strong>Configurable Bracket Notice:</strong> In <code class="text-[10px]">BusinessLogic.vb</code>, bracket values come from <code class="text-[10px]">GetWTaxInfo()</code>. Inputs above are configurable illustrative bracket parameters.
+                        </p>
+                    </div>
+
+                    <!-- Attendance & Other Deductions Summary inside Side Panel -->
+                    <div class="space-y-1.5 text-xs border-t border-slate-200 pt-3">
+                        <div class="flex justify-between text-slate-600">
+                            <span>Absences (<code class="text-[10px]">ComputerAbsAmt</code>)</span>
+                            <span id="sideAbsAmt" class="font-medium text-slate-800">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Late (<code class="text-[10px]">ComputeLateAmt</code>)</span>
+                            <span id="sideLateAmt" class="font-medium text-slate-800">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Undertime (<code class="text-[10px]">ComputeUtimeAmt</code>)</span>
+                            <span id="sideUtimeAmt" class="font-medium text-slate-800">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Other Deductions (<code class="text-[10px]">OthDed</code>)</span>
+                            <span id="sideOthDed" class="font-medium text-slate-800">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between font-bold text-sm text-rose-700 pt-2 border-t border-slate-100">
+                            <span>Total Deductions (<code class="text-xs">ComputeDeduction</code>)</span>
+                            <span id="outTotalDeductions">₱0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAYSLIP SUMMARY CARD -->
+                <div class="glass-card rounded-2xl p-6 overflow-hidden relative">
+                    <div class="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 rounded-full bg-blue-50 opacity-60 pointer-events-none"></div>
+                    
+                    <h3 class="text-lg font-bold text-slate-900 mb-4 border-b border-slate-200 pb-3">Payslip Summary</h3>
+                    
+                    <!-- Rate Breakdown -->
+                    <div class="bg-slate-50 rounded-lg p-3.5 mb-4 border border-slate-200/70">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Computed Daily Rate</span>
+                            <span id="displayDailyRate" class="text-sm font-semibold text-slate-800">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-slate-500 uppercase tracking-wider">Computed Hourly Rate</span>
+                            <span id="displayHourlyRate" class="text-sm font-semibold text-slate-800">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Key Earnings & Adjustments -->
+                    <div class="space-y-2.5 text-sm mb-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Regular Pay (<code class="text-xs">ComputeRegPay</code>)</span>
+                            <span id="outRegPay" class="font-medium text-slate-900">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">COLA (<code class="text-xs">ComputeCOLA</code>)</span>
+                            <span id="outCOLATotal" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Paid Leave (<code class="text-xs">ComputeSLVLAmt</code>)</span>
+                            <span id="outSLVLAmt" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Regular OT (1.25x)</span>
+                            <span id="outOTPay" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Rest Day & Rest Day OT</span>
+                            <span id="outRestDayCombined" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Regular & Special Holidays</span>
+                            <span id="outHolidayCombined" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Night Diff & OT Night Diffs</span>
+                            <span id="outNDCombined" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-600">Allowances, OB, Offset & Oth. Inc.</span>
+                            <span id="outAllowOBCombined" class="font-medium text-emerald-700">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-rose-600">
+                            <span>Abs, Late, Utime & Oth. Ded.</span>
+                            <span id="outGrossAdjDed" class="font-medium">- ₱0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 pt-4 mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-semibold text-slate-700">Gross Pay (<code class="text-xs">ComputeIncome</code>)</span>
+                            <span id="outGrossPay" class="text-xl font-bold text-slate-900">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm text-rose-600 mb-3">
+                            <span>Total Deductions</span>
+                            <span id="outSummaryDed" class="font-semibold">- ₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-end pt-3 border-t border-slate-200">
+                            <div>
+                                <span class="block text-xs font-semibold text-blue-700 uppercase tracking-wider">Net Take-Home Pay</span>
+                                <span class="block text-[11px] text-slate-400"><code class="text-[10px]">ComputNetIncome()</code></span>
+                            </div>
+                            <span id="outNetPay" class="text-3xl font-bold text-blue-700 tracking-tight">₱0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Expandable Formula & Computation Breakdown -->
+                    <div class="border-t border-slate-200 pt-3">
+                        <button type="button" onclick="toggleBreakdown()" class="w-full flex items-center justify-between text-xs font-semibold text-slate-700 hover:text-blue-600 py-1">
+                            <span>Formula & Computation Breakdown</span>
+                            <span id="breakdownToggleText">Show Details</span>
+                        </button>
+                        <div id="breakdownPanel" class="hidden mt-2 p-3 rounded-lg bg-slate-900 text-slate-100 text-[11px] font-mono space-y-1.5 max-h-64 overflow-y-auto">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript Logic faithfully mirroring BusinessLogic.vb -->
+    <script>
+        const phpFormatter = new Intl.NumberFormat('en-PH', {
+            style: 'currency',
+            currency: 'PHP',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+
+        // Helper matching VB.NET Math.Round(val, digits) away-from-zero for 2 decimals
+        function vbRound(val, decimals = 2) {
+            const factor = Math.pow(10, decimals);
+            return Math.sign(val) * Math.round(Math.abs(val) * factor) / factor;
+        }
+
+        // Helper matching VB.NET FormatNumber(val, 2)
+        function fmtNum(val, decimals = 2) {
+            return vbRound(Number(val) || 0, decimals);
+        }
+
+        function getNum(id) {
+            const el = document.getElementById(id);
+            if (!el) return 0;
+            const n = parseFloat(el.value);
+            return isNaN(n) ? 0 : n;
+        }
+
+        function toggleBreakdown() {
+            const panel = document.getElementById('breakdownPanel');
+            const label = document.getElementById('breakdownToggleText');
+            panel.classList.toggle('hidden');
+            label.textContent = panel.classList.contains('hidden') ? 'Show Details' : 'Hide Details';
+        }
+
+        function updateFormUI() {
+            const isMonthly = document.querySelector('input[name="empType"]:checked').value === 'monthly';
+            const salaryLabel = document.getElementById('salaryLabel');
+            const salaryInput = document.getElementById('salary');
+
+            if (isMonthly) {
+                salaryLabel.textContent = "Basic Monthly Salary (₱)";
+                if (salaryInput.value === '600') salaryInput.value = '20000';
+            } else {
+                salaryLabel.textContent = "Basic Daily Rate (₱)";
+                if (salaryInput.value === '20000') salaryInput.value = '600';
+            }
+            calculatePayroll();
+        }
+
+        function loadPreset(mode) {
+            if (mode === 'monthly') {
+                document.querySelector('input[name="empType"][value="monthly"]').checked = true;
+                document.getElementById('salaryLabel').textContent = "Basic Monthly Salary (₱)";
+                document.getElementById('salary').value = '20000';
+                document.getElementById('days').value = '11';
+                document.getElementById('cola').value = '40';
+            } else {
+                document.querySelector('input[name="empType"][value="daily"]').checked = true;
+                document.getElementById('salaryLabel').textContent = "Basic Daily Rate (₱)";
+                document.getElementById('salary').value = '600';
+                document.getElementById('days').value = '12';
+                document.getElementById('cola').value = '40';
+            }
+
+            const zeroFields = [
+                'slvlHrs', 'obHrs', 'offsetHrs', 'empAllowance', 'othInc',
+                'absHrs', 'lateHrs', 'utimeHrs', 'othDed',
+                'otHrs', 'otNightDiffHrs', 'nightDiffHrs', 'restDayHrs', 'restDayOTHrs', 'restDayNDHrs', 'restDayOTNDHrs',
+                'legHolDays', 'legHolHrs', 'legHolRestDayHrs', 'otLegHolHrs', 'otLegHolRestDayHrs', 'otNDLegHolHrs', 'otNDLegHolRestDayHrs',
+                'splHolDays', 'splHolHrsPresent', 'splHolRestDayHrs', 'otSplHolHrs', 'otSplHolRestDayHrs', 'otNDSplHolHrs', 'otNDSplHolRestDayHrs',
+                'prevGrossPay'
+            ];
+            zeroFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '0';
+            });
+            document.getElementById('otherIncomeCode').value = '2';
+            calculatePayroll();
+        }
+
+        function resetForm() {
+            loadPreset('monthly');
+        }
+
+        // Illustrative SSS fallback lookup when standalone (DB GetSSSRange is external)
+        function estimateSSS(basisAmount) {
+            if (basisAmount <= 0) return 0;
+            // Illustrative monthly-equivalent bracket lookup
+            const monthlyEquiv = basisAmount < 12000 ? basisAmount * 2 : basisAmount;
+            const rawEE = Math.min(1125, Math.max(180, vbRound(monthlyEquiv * 0.045, 2)));
+            return basisAmount < 12000 ? vbRound(rawEE / 2, 2) : rawEE;
+        }
+
+        function calculatePayroll() {
+            const isMonthly = document.querySelector('input[name="empType"]:checked').value === 'monthly' ? 1 : 0;
+            const regPayInput = getNum('salary');
+            const workDays = getNum('days');
+            const defCola = getNum('cola');
+
+            const slvlHrs = getNum('slvlHrs');
+            const obHrs = getNum('obHrs');
+            const offsetHrs = getNum('offsetHrs');
+            const empAllowance = getNum('empAllowance');
+            const otherIncomeCode = parseInt(document.getElementById('otherIncomeCode').value, 10) || 0;
+            const othInc = getNum('othInc');
+
+            const absHrs = getNum('absHrs');
+            const lateHrs = getNum('lateHrs');
+            const utimeHrs = getNum('utimeHrs');
+            const othDed = getNum('othDed');
+
+            const otHrs = getNum('otHrs');
+            const otNightDiffHrs = getNum('otNightDiffHrs');
+            const nightDiffHrs = getNum('nightDiffHrs');
+            const restDayHrs = getNum('restDayHrs');
+            const restDayOTHrs = getNum('restDayOTHrs');
+            const restDayNDHrs = getNum('restDayNDHrs');
+            const restDayOTNDHrs = getNum('restDayOTNDHrs');
+
+            const legHolDays = getNum('legHolDays');
+            const legHolHrs = getNum('legHolHrs');
+            const legHolRestDayHrs = getNum('legHolRestDayHrs');
+            const otLegHolHrs = getNum('otLegHolHrs');
+            const otLegHolRestDayHrs = getNum('otLegHolRestDayHrs');
+            const otNDLegHolHrs = getNum('otNDLegHolHrs');
+            const otNDLegHolRestDayHrs = getNum('otNDLegHolRestDayHrs');
+
+            const splHolDays = getNum('splHolDays');
+            const splHolHrsPresent = getNum('splHolHrsPresent');
+            const splHolRestDayHrs = getNum('splHolRestDayHrs');
+            const otSplHolHrs = getNum('otSplHolHrs');
+            const otSplHolRestDayHrs = getNum('otSplHolRestDayHrs');
+            const otNDSplHolHrs = getNum('otNDSplHolHrs');
+            const otNDSplHolRestDayHrs = getNum('otNDSplHolRestDayHrs');
+
+            // 1. Daily & Hourly Equivalents + ComputeRegPay()
+            let dailyRate = 0;
+            let hourlyRate = 0;
+            let regPayment = 0;
+
+            if (isMonthly === 1) {
+                dailyRate = (regPayInput * 12) / 313;
+                hourlyRate = dailyRate / 8;
+                regPayment = regPayInput / 2;
+            } else {
+                dailyRate = regPayInput;
+                hourlyRate = dailyRate / 8;
+                regPayment = regPayInput * workDays;
+            }
+
+            // 2. ComputerAbsAmt(), ComputeLateAmt(), ComputeUtimeAmt()
+            let absAmt = 0;
+            let lateAmt = 0;
+            let utimeAmt = 0;
+
+            if (isMonthly === 1) {
+                absAmt = ((regPayInput * 12 / 313) / 8) * absHrs;
+                lateAmt = (regPayInput * 12 / 313 / 8) * lateHrs;
+                utimeAmt = (regPayInput * 12 / 313 / 8) * utimeHrs;
+            } else {
+                absAmt = 0; // Daily-paid returns 0 absence deduction in BusinessLogic.vb
+                lateAmt = vbRound(regPayInput / 8, 2) * lateHrs;
+                utimeAmt = vbRound(regPayInput / 8, 2) * utimeHrs;
+            }
+
+            // 3. ComputeCOLA()
+            let totalCola = 0;
+            if (isMonthly === 1) {
+                totalCola = fmtNum((defCola / 8) * (workDays * 8)) + ((defCola / 8) * slvlHrs) - ((defCola / 8) * lateHrs) - ((defCola / 8) * utimeHrs);
+            } else {
+                totalCola = fmtNum(((defCola / 8) * (workDays * 8)) - ((defCola / 8) * lateHrs) - ((defCola / 8) * utimeHrs));
+            }
+            totalCola = fmtNum(totalCola);
+
+            // 4. ComputeSLVLAmt()
+            const slvlAmt = isMonthly === 1
+                ? fmtNum((((regPayInput * 12) / 313) / 8) * slvlHrs)
+                : fmtNum((regPayInput / 8) * slvlHrs);
+
+            // 5. ComputeOTAmt()
+            const otAmt = isMonthly === 1
+                ? fmtNum((((regPayInput * 12) / 313 / 8) * 1.25) * otHrs)
+                : fmtNum(((regPayInput / 8) * 1.25) * otHrs);
+
+            // 6. ComputeHolAmt()
+            let legHolPay = 0;
+            if (isMonthly === 1) {
+                const part1 = fmtNum((vbRound(((regPayInput + totalCola) * 12) / 313, 2) / 8) * (legHolDays * 8));
+                legHolPay = fmtNum((vbRound(((regPayInput + totalCola) * 12) / 313, 2) / 8) * legHolHrs) + part1;
+            } else {
+                const part1 = fmtNum((regPayInput + totalCola) * legHolDays);
+                legHolPay = fmtNum(((regPayInput + totalCola) / 8) * legHolHrs + part1);
+            }
+            legHolPay = fmtNum(legHolPay);
+
+            // 7. ComputeSpcHolAmt()
+            let splHolPay = 0;
+            if (isMonthly === 1) {
+                if (splHolHrsPresent > 0) {
+                    const hrly = fmtNum(vbRound((regPayInput * 12) / 313, 2) / 8);
+                    splHolPay = fmtNum(vbRound(hrly * splHolHrsPresent * 0.3, 2), 2);
+                }
+            } else {
+                if (splHolHrsPresent > 0) {
+                    const baseSpc = fmtNum(regPayInput * splHolDays);
+                    splHolPay = fmtNum(baseSpc + vbRound(baseSpc * 0.3, 2) + ((totalCola / 8) * splHolHrsPresent), 2);
+                }
+            }
+
+            // 8. ComputeHolRestDayAmt()
+            let legHolHrsRestDayAmt = 0;
+            if (legHolRestDayHrs > 0) {
+                if (isMonthly === 1) {
+                    const amt = (((regPayInput * 12) / 313) * 2) * 0.3;
+                    legHolHrsRestDayAmt = fmtNum((amt / 8) * legHolRestDayHrs, 2);
+                } else {
+                    const amt = ((regPayInput - totalCola) * 2) * 0.3;
+                    legHolHrsRestDayAmt = fmtNum((amt / 8) * legHolRestDayHrs, 2);
+                }
+            }
+
+            // 9. ComputeSplHolRestDayAmt()
+            let splHolRestDayAmt = 0;
+            if (splHolRestDayHrs > 0) {
+                if (isMonthly === 1) {
+                    const amt = ((regPayInput * 12) / 313) * 0.5;
+                    splHolRestDayAmt = fmtNum((amt / 8) * splHolRestDayHrs, 2);
+                } else {
+                    splHolRestDayAmt = fmtNum(((regPayInput / 8) * splHolRestDayHrs) + (((regPayInput - totalCola) / 8) * splHolRestDayHrs) * 0.5, 2);
+                }
+            }
+
+            // 10. Holiday Overtimes & Night Diffs
+            const otLegHolAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) * 2) / 8) * 1.3) * otLegHolHrs, 2)
+                : fmtNum((((regPayInput * 2) / 8) * 1.3) * otLegHolHrs, 2);
+
+            const otLegHolRestDayAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) * 2) + ((((regPayInput * 12) / 313) * 2) * 0.3)) / 8) * 1.3 * otLegHolRestDayHrs, 2)
+                : fmtNum(((((regPayInput * 2) + ((regPayInput * 2) * 0.3)) / 8) * 1.3) * otLegHolRestDayHrs, 2);
+
+            const otNDLegHolAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) * 2) / 8) * 1.3 * 0.1) * otNDLegHolHrs, 2)
+                : fmtNum((((regPayInput * 2) / 8) * 1.3 * 0.1) * otNDLegHolHrs, 2);
+
+            const otNDLegHolRestDayAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) * 2) + ((((regPayInput * 12) / 313) * 2) * 0.3)) / 8) * 1.3 * 0.1 * otNDLegHolRestDayHrs, 2)
+                : fmtNum(((((regPayInput * 2) + ((regPayInput * 2) * 0.3)) / 8) * 1.3 * 0.1) * otNDLegHolRestDayHrs, 2);
+
+            const otSplHolAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) / 8) * 1.3) * otSplHolHrs) * 1.3)
+                : fmtNum((((regPayInput / 8) * 1.3) * otSplHolHrs) * 1.3);
+
+            const otSplHolRestDayAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) + (((regPayInput * 12) / 313) * 0.5)) / 8) * 1.3) * otSplHolRestDayHrs, 2)
+                : fmtNum(((((regPayInput) + (regPayInput * 0.5)) / 8) * 1.3) * otSplHolRestDayHrs, 2);
+
+            const otNDSplHolAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313 / 8) * 1.3) * 1.3) * 0.1) * otNDSplHolHrs)
+                : fmtNum(((((regPayInput / 8) * 1.3) * 1.3) * 0.1) * otNDSplHolHrs);
+
+            const otNDSplHolRestDayAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) + (((regPayInput * 12) / 313) * 0.5)) / 8) * 1.3 * 0.1) * otNDSplHolRestDayHrs, 2)
+                : fmtNum(((((regPayInput) + (regPayInput * 0.5)) / 8) * 1.3 * 0.1) * otNDSplHolRestDayHrs, 2);
+
+            // 11. Rest Day & Night Diffs
+            const restDayAmt = isMonthly === 1
+                ? fmtNum(((vbRound((regPayInput * 12) / 313, 2) / 8) * 1.3) * restDayHrs)
+                : fmtNum(((regPayInput / 8) * 1.3) * restDayHrs);
+
+            const restDayOTAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) / 8) * 1.3) * restDayOTHrs) * 1.3)
+                : fmtNum((((regPayInput / 8) * 1.3) * restDayOTHrs) * 1.3);
+
+            const nightDiffAmt = isMonthly === 1
+                ? fmtNum((((regPayInput * 12) / 313 / 8) * 0.1) * nightDiffHrs)
+                : fmtNum(((regPayInput / 8) * 0.1) * nightDiffHrs);
+
+            const restDayNightDiffAmt = isMonthly === 1
+                ? fmtNum(((vbRound((regPayInput * 12) / 313, 2) / 8) * 1.3 * 0.1) * restDayNDHrs)
+                : fmtNum(((regPayInput / 8) * 1.3 * 0.1) * restDayNDHrs);
+
+            const restDayNightDiffOTAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313 / 8) * 1.3) * 1.3) * 0.1) * restDayOTNDHrs)
+                : fmtNum(((((regPayInput / 8) * 1.3) * 1.3) * 0.1) * restDayOTNDHrs);
+
+            const otNightDiffAmt = isMonthly === 1
+                ? fmtNum((((((regPayInput * 12) / 313) / 8) * 1.25) * 0.1) * otNightDiffHrs, 2)
+                : fmtNum(((((regPayInput) / 8) * 1.25) * 0.1) * otNightDiffHrs, 2);
+
+            // 12. ComputeOBAmt() & ComputeOffsetAmt()
+            const obAmt = isMonthly === 1
+                ? fmtNum((vbRound((regPayInput * 12) / 313, 2) / 8) * obHrs)
+                : (regPayInput / 8) * obHrs;
+
+            const offsetAmt = isMonthly === 1
+                ? fmtNum((vbRound((regPayInput * 12) / 313, 2) / 8) * offsetHrs)
+                : (regPayInput / 8) * offsetHrs;
+
+            // 13. ComputeAllowance()
+            let allowanceAmt = 0;
+            if (otherIncomeCode === 2) {
+                if (isMonthly === 1) {
+                    if (workDays + slvlAmt + legHolPay + splHolPay + otAmt > 0) {
+                        const rateHr = (empAllowance * 12) / 313 / 8;
+                        allowanceAmt = (empAllowance / 2) + (slvlHrs * rateHr) - (lateHrs * rateHr) - (utimeHrs * rateHr) - (rateHr * absHrs) + (offsetHrs * rateHr) + (obHrs * rateHr);
+                    }
+                } else {
+                    if (workDays + slvlAmt + legHolPay + splHolPay + otAmt > 0) {
+                        const rateHr = empAllowance / 8;
+                        allowanceAmt = (empAllowance * workDays) + (slvlHrs * rateHr) + (legHolDays * empAllowance) + (splHolDays * empAllowance) - (lateHrs * rateHr) - (utimeHrs * rateHr) - (rateHr * absHrs) + (offsetHrs * rateHr) + (obHrs * rateHr);
+                    }
+                }
+            }
+            allowanceAmt = fmtNum(allowanceAmt);
+            const othIncTotal = fmtNum(othInc + allowanceAmt);
+
+            // 14. ComputeIncome() -> Gross Pay
+            const additions = regPayment + totalCola + slvlAmt + otAmt + legHolPay + splHolPay + restDayAmt + nightDiffAmt +
+                othIncTotal + offsetAmt + obAmt + restDayOTAmt + restDayNightDiffOTAmt + legHolHrsRestDayAmt +
+                otLegHolAmt + otNDLegHolAmt + otLegHolRestDayAmt + otNDLegHolRestDayAmt +
+                splHolRestDayAmt + otSplHolAmt + otNDSplHolAmt + otSplHolRestDayAmt + otNDSplHolRestDayAmt +
+                otNightDiffAmt + restDayNightDiffAmt;
+
+            const grossAdjDed = absAmt + lateAmt + utimeAmt + othDed;
+            const grossPay = additions - grossAdjDed;
+
+            // 15. ComputeIncomePhilHealth() & PhilHealth PS
+            let phBasis = 0;
+            if (isMonthly === 1) {
+                phBasis = (regPayment + slvlAmt + offsetAmt + obAmt) - othDed - (absAmt + lateAmt + utimeAmt);
+            } else {
+                phBasis = (regPayment + slvlAmt + offsetAmt + obAmt + legHolPay) - othDed - (absAmt + lateAmt + utimeAmt);
+            }
+            const phAuto = document.getElementById('phAutoCalc').checked;
+            const philHealthAmt = phAuto
+                ? (phBasis >= 1 ? fmtNum((Math.min(100000, Math.max(10000, isMonthly === 1 ? phBasis * 2 : phBasis * 22)) * 0.05) / 2, 2) : 0)
+                : getNum('phManual');
+
+            // 16. ComputeSSS()
+            const sssAuto = document.getElementById('sssAutoEstimate').checked;
+            const sssAmt = sssAuto ? estimateSSS(Math.max(0, grossPay)) : getNum('sssManual');
+
+            // 17. ComputePagIbig() / ComputePagIbigOld2023()
+            const prevGross = getNum('prevGrossPay');
+            const pagibigER = document.getElementById('pagibigER').checked;
+            const pagibigOld = document.getElementById('pagibigOld2023').checked;
+            let pagIbigAmt = 0;
+            if (pagibigOld) {
+                const base = grossPay > 0 ? (prevGross + grossPay) * 0.02 : prevGross * 0.02;
+                pagIbigAmt = fmtNum(Math.min(100, base));
+            } else {
+                const combined = prevGross + grossPay;
+                if (!pagibigER) {
+                    if (combined <= 1500) pagIbigAmt = combined * 0.01;
+                    else if (combined < 10000) pagIbigAmt = combined * 0.02;
+                    else pagIbigAmt = 200;
+                } else {
+                    if (combined <= 1500) pagIbigAmt = combined * 0.02;
+                    else if (combined < 10000) pagIbigAmt = combined * 0.02;
+                    else pagIbigAmt = 200;
+                }
+            }
+            pagIbigAmt = fmtNum(pagIbigAmt);
+
+            // 18. ComputeWtax(): (Amount - Minuend) * Multiplier + Addends
+            const minuend = getNum('wtaxMinuend');
+            const multiplier = getNum('wtaxMultiplier');
+            const addends = getNum('wtaxAddends');
+            const taxableAmt = Math.max(0, grossPay - sssAmt - philHealthAmt - pagIbigAmt);
+            const wtaxAmt = taxableAmt > minuend
+                ? fmtNum(((taxableAmt - minuend) * multiplier) + addends, 2)
+                : 0;
+
+            // 19. ComputeDeduction() & ComputNetIncome()
+            const totalDeductions = fmtNum(wtaxAmt + sssAmt + philHealthAmt + pagIbigAmt + othDed);
+            const netPay = grossPay - totalDeductions;
+
+            // Update UI
+            document.getElementById('displayDailyRate').textContent = phpFormatter.format(dailyRate);
+            document.getElementById('displayHourlyRate').textContent = phpFormatter.format(hourlyRate);
+
+            document.getElementById('outRegPay').textContent = phpFormatter.format(regPayment);
+            document.getElementById('outCOLATotal').textContent = phpFormatter.format(totalCola);
+            document.getElementById('outSLVLAmt').textContent = phpFormatter.format(slvlAmt);
+            document.getElementById('outOTPay').textContent = phpFormatter.format(otAmt);
+
+            const restDayCombined = restDayAmt + restDayOTAmt;
+            const holidayCombined = legHolPay + splHolPay + legHolHrsRestDayAmt + splHolRestDayAmt +
+                otLegHolAmt + otLegHolRestDayAmt + otSplHolAmt + otSplHolRestDayAmt;
+            const ndCombined = nightDiffAmt + restDayNightDiffAmt + restDayNightDiffOTAmt +
+                otNightDiffAmt + otNDLegHolAmt + otNDLegHolRestDayAmt + otNDSplHolAmt + otNDSplHolRestDayAmt;
+            const allowOBCombined = othIncTotal + obAmt + offsetAmt;
+
+            document.getElementById('outRestDayCombined').textContent = phpFormatter.format(restDayCombined);
+            document.getElementById('outHolidayCombined').textContent = phpFormatter.format(holidayCombined);
+            document.getElementById('outNDCombined').textContent = phpFormatter.format(ndCombined);
+            document.getElementById('outAllowOBCombined').textContent = phpFormatter.format(allowOBCombined);
+            document.getElementById('outGrossAdjDed').textContent = `- ${phpFormatter.format(grossAdjDed)}`;
+
+            document.getElementById('outGrossPay').textContent = phpFormatter.format(grossPay);
+            document.getElementById('outSummaryDed').textContent = `- ${phpFormatter.format(totalDeductions)}`;
+            document.getElementById('outNetPay').textContent = phpFormatter.format(netPay);
+
+            // Side panel updates
+            document.getElementById('outSSS').textContent = phpFormatter.format(sssAmt);
+            document.getElementById('outPHBasis').textContent = phpFormatter.format(phBasis);
+            document.getElementById('outPhilHealth').textContent = phpFormatter.format(philHealthAmt);
+            document.getElementById('outPagIbig').textContent = phpFormatter.format(pagIbigAmt);
+            document.getElementById('outWtax').textContent = phpFormatter.format(wtaxAmt);
+
+            document.getElementById('sideAbsAmt').textContent = phpFormatter.format(absAmt);
+            document.getElementById('sideLateAmt').textContent = phpFormatter.format(lateAmt);
+            document.getElementById('sideUtimeAmt').textContent = phpFormatter.format(utimeAmt);
+            document.getElementById('sideOthDed').textContent = phpFormatter.format(othDed);
+            document.getElementById('outTotalDeductions').textContent = phpFormatter.format(totalDeductions);
+
+            // Breakdown panel
+            document.getElementById('breakdownPanel').innerHTML = `
+                <div>Mode: ${isMonthly === 1 ? 'Monthly (IsMonthly=1, 313 divisor)' : 'Daily (IsMonthly=0)'}</div>
+                <div>Daily Rate: ${phpFormatter.format(dailyRate)} | Hourly Rate: ${phpFormatter.format(hourlyRate)}</div>
+                <div>RegPay: ${phpFormatter.format(regPayment)} | COLA: ${phpFormatter.format(totalCola)} | SLVL: ${phpFormatter.format(slvlAmt)}</div>
+                <div>OT (1.25x): ${phpFormatter.format(otAmt)} | RestDay: ${phpFormatter.format(restDayAmt)} | RestDayOT: ${phpFormatter.format(restDayOTAmt)}</div>
+                <div>LegHol: ${phpFormatter.format(legHolPay)} | SpcHol: ${phpFormatter.format(splHolPay)} | Hol/RD/OT/ND Combos: ${phpFormatter.format(holidayCombined + ndCombined - legHolPay - splHolPay - restDayAmt - restDayOTAmt)}</div>
+                <div>Allowance (Code ${otherIncomeCode}): ${phpFormatter.format(allowanceAmt)} | OthInc: ${phpFormatter.format(othInc)} | OB: ${phpFormatter.format(obAmt)} | Offset: ${phpFormatter.format(offsetAmt)}</div>
+                <div>Gross Adj Ded (Abs+Late+Utime+OthDed): -${phpFormatter.format(grossAdjDed)}</div>
+                <div>Gross Pay: ${phpFormatter.format(grossPay)}</div>
+                <div>Taxable Est (Gross - SSS - PH - PagIbig): ${phpFormatter.format(taxableAmt)}</div>
+                <div>Wtax = ((${taxableAmt.toFixed(2)} - ${minuend}) * ${multiplier}) + ${addends} = ${phpFormatter.format(wtaxAmt)}</div>
+                <div>Total Deductions = ${phpFormatter.format(totalDeductions)} -> Net Pay = ${phpFormatter.format(netPay)}</div>
+            `;
+        }
+
+        window.onload = () => {
+            calculatePayroll();
+        };
+    </script>
+</body>
+</html>
